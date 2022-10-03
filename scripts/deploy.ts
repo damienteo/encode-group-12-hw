@@ -1,5 +1,5 @@
-import "dotenv/config";
 import { ethers } from "hardhat";
+import { Ballot__factory } from "../typechain-types";
 
 const PROPOSALS = ["Proposal 1", "Proposal 2", "Proposal 3"];
 
@@ -12,13 +12,21 @@ const convertStringArrayToBytes32 = (array: string[]) => {
 };
 
 const main = async () => {
+  const accounts = await ethers.getSigners();
+  const balanceBN = await accounts[0].getBalance();
+  const balance = Number(ethers.utils.formatEther(balanceBN));
+
+  console.log(`Wallet balance ${balance}`);
+  if (balance < 0.01) throw new Error("Not enough Ether");
+
   console.log("Deploying Ballot contract");
   console.log("Proposals: ");
-  const accounts = await ethers.getSigners();
+
   PROPOSALS.forEach((element, index) => {
     console.log(`Proposal N. ${index + 1}: ${element}`);
   });
-  const ballotFactory = await ethers.getContractFactory("Ballot");
+
+  const ballotFactory = new Ballot__factory(accounts[0]);
   const ballotContract = await ballotFactory.deploy(
     convertStringArrayToBytes32(PROPOSALS)
   );
