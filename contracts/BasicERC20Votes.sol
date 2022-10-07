@@ -1,19 +1,27 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.2;
+pragma solidity >=0.7.0 <0.9.0;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Wrapper.sol";
 
-contract MyToken is ERC20, ERC20Permit, ERC20Votes, ERC20Wrapper {
-    constructor(IERC20 wrappedToken)
-        ERC20("MyToken", "MTK")
-        ERC20Permit("MyToken")
-        ERC20Wrapper(wrappedToken)
-    {}
+contract BasicERC20Votes is ERC20, AccessControl, ERC20Permit, ERC20Votes {
+    bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
 
-    // The functions below are overrides required by Solidity.
+    constructor()
+        ERC20("BasicERC20Votes", "BEV")
+        ERC20Permit("BasicERC20Votes")
+    {
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _grantRole(MINTER_ROLE, msg.sender);
+    }
+
+    function mint(address to, uint256 amount) public onlyRole(MINTER_ROLE) {
+        _mint(to, amount);
+    }
+
+    // The following functions are overrides required by Solidity.
 
     function _afterTokenTransfer(
         address from,
