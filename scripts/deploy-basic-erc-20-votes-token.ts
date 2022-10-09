@@ -1,12 +1,31 @@
 import { ethers } from "hardhat";
+import * as dotenv from "dotenv";
+import { BasicERC20Votes__factory } from "../typechain-types/factories/contracts/BasicERC20Votes__factory";
+dotenv.config();
+
+const { PRIVATE_KEY, ALCHEMY_API_KEY, INFURA_API_KEY } = process.env;
 
 const TOKENS_MINTED = "1";
 
-async function deployBasicERC20Votes() {
-  const BasicERC20Votes = await ethers.getContractFactory("BasicERC20Votes");
-  const [owner, addr1, addr2, addr3] = await ethers.getSigners();
+const [addr1, addr2, addr3] = [
+  "0xd6e9b48D59D780F28a6BEEbe8098f3b095c003d7",
+  "0xdE3fb8d56CB213dEf9212723fF017C6c3538598a",
+  "0x17E1EbC1d6BCFDa760Af68e1eE7ab0dD7f577cF4",
+];
 
-  const basicERC20VotesToken = await BasicERC20Votes.deploy();
+async function deployBasicERC20Votes() {
+  const options = {
+    alchemy: ALCHEMY_API_KEY,
+    infura: INFURA_API_KEY,
+  };
+
+  const provider = ethers.providers.getDefaultProvider("goerli", options);
+
+  let deployer = new ethers.Wallet(PRIVATE_KEY ?? "", provider);
+
+  const basicERC20VotesTokenFactory = new BasicERC20Votes__factory(deployer);
+
+  const basicERC20VotesToken = await basicERC20VotesTokenFactory.deploy();
   await basicERC20VotesToken.deployed();
 
   console.log(`Contract deployed to ${basicERC20VotesToken.address}`);
@@ -18,7 +37,7 @@ async function deployBasicERC20Votes() {
 
   console.log("Minting new tokens for account 1");
   const mintTx = await basicERC20VotesToken.mint(
-    addr1.address,
+    addr1,
     ethers.utils.parseEther(TOKENS_MINTED)
   );
   await mintTx.wait();
@@ -34,21 +53,21 @@ async function deployBasicERC20Votes() {
   );
 
   console.log("What is the current balance of account 1?");
-  const balance = await basicERC20VotesToken.balanceOf(addr1.address);
+  const balance = await basicERC20VotesToken.balanceOf(addr1);
   console.log(`Balance: ${ethers.utils.formatEther(balance)} in ETH`);
 
   console.log("What is the current vote power of account 1?");
-  const votingPower = await basicERC20VotesToken.getVotes(addr1.address);
+  const votingPower = await basicERC20VotesToken.getVotes(addr1);
   console.log(`Voting Power: ${votingPower}`);
 
-  console.log("Delegating from Account 1 to Account 1...");
+  console.log("Delegating from deployer to self...");
   const delegateTx = await basicERC20VotesToken
-    .connect(addr1)
-    .delegate(addr1.address);
+    .connect(deployer)
+    .delegate(deployer.address);
   await delegateTx.wait();
 
   console.log("What is the next vote power of Account 1?");
-  const nextVotingPower = await basicERC20VotesToken.getVotes(addr1.address);
+  const nextVotingPower = await basicERC20VotesToken.getVotes(addr1);
   console.log(
     `Next Voting Power: ${ethers.utils.formatEther(nextVotingPower)} in ETH`
   );
@@ -58,13 +77,13 @@ async function deployBasicERC20Votes() {
   console.log(`The current blockNumber is ${block.number}`);
 
   const mintTx2 = await basicERC20VotesToken.mint(
-    addr2.address,
+    addr2,
     ethers.utils.parseEther(TOKENS_MINTED)
   );
   await mintTx2.wait();
 
   const mintTx3 = await basicERC20VotesToken.mint(
-    addr3.address,
+    addr3,
     ethers.utils.parseEther(TOKENS_MINTED)
   );
   await mintTx3.wait();
@@ -74,11 +93,11 @@ async function deployBasicERC20Votes() {
   console.log(`The current blockNumber is ${nextBlock.number}`);
 
   const pastVotes = await Promise.all([
-    basicERC20VotesToken.getPastVotes(addr1.address, 4),
-    basicERC20VotesToken.getPastVotes(addr1.address, 3),
-    basicERC20VotesToken.getPastVotes(addr1.address, 2),
-    basicERC20VotesToken.getPastVotes(addr1.address, 1),
-    basicERC20VotesToken.getPastVotes(addr1.address, 0),
+    basicERC20VotesToken.getPastVotes(addr1, 4),
+    basicERC20VotesToken.getPastVotes(addr1, 3),
+    basicERC20VotesToken.getPastVotes(addr1, 2),
+    basicERC20VotesToken.getPastVotes(addr1, 1),
+    basicERC20VotesToken.getPastVotes(addr1, 0),
   ]);
   console.log({ pastVotes });
 }
